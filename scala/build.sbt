@@ -18,6 +18,10 @@ libraryDependencies  ++= Seq(
   "org.scalanlp" %% "breeze-viz" % "0.12"
 )
 
+// ScalaTest
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.0"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+
 resolvers ++= Seq(
   // if you want to use snapshot builds (currently 0.12-SNAPSHOT), use this.
   // "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
