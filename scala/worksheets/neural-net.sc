@@ -1,6 +1,6 @@
 import breeze.linalg.{DenseMatrix, DenseVector, sum}
 
-val nn = new NeuralNet(layerConfig = List(2,2,2),
+val nn = new NeuralNet(numNodesPerLayer = List(2,2,2),
 //                       userWeights = List(DenseMatrix((0.15, 0.25, 0.35), (0.20, 0.30, 0.35)),
 //                                      DenseMatrix((0.40, 0.50, 0.6), (0.45, 0.55, 0.6))))
                        userWeights = List(DenseMatrix((0.15, 0.25), (0.20, 0.30), (0.35, 0.35)),

@@ -1,88 +1,52 @@
-import breeze.linalg.{DenseMatrix, DenseVector, sum}
-import breeze.stats.distributions.{RandBasis, ThreadLocalRandomGenerator}
-import org.apache.commons.math3.random.MersenneTwister
+import breeze.linalg.{DenseMatrix, DenseVector}
 
-class NeuralNet(layerConfig: List[Int],
+// TODO use Streams
+// TODO use 3d matrix instead of list of 2d matrices for weights
+
+/**
+  * @param userWeights each DenseMatrix represents the weights going from a particular node in
+  *                    layer l (row #) to a particular node in layer l+1 (column #)
+  */
+// TODO fix this constructor, don't need both numNodesPerLayer and userWeights
+class NeuralNet(numNodesPerLayer: List[Int],
                 userWeights: List[DenseMatrix[Double]] = Nil,
-               // TODO extract out ActivationFunc
-                activationF: Double => Double = { x => 1d/(1d+scala.math.exp(-x)) }, // sigmoid
-                dActivationF: Double => Double = { x =>  x * (1 - x)},
-                // TODO extract out CostFunc
-                costF: (DenseVector[Double], DenseVector[Double]) => Double = {
-                  // TODO double check that I have expected and actual in the right order for RSS
-                  (expected, actual) => sum((expected - actual) :^ 2d) / 2 // RSS
-                },
-                dCostF: (Double, Double) => Double = {
-                  (expected, actual) =>  actual - expected
-                }) {
+                activationFunc: ActivationFunc = NeuralNet.DefaultActivationFunc,
+                costFunc: CostFunc = NeuralNet.DefaultCostFunc) {
 
+  val weights = if (userWeights != Nil) userWeights else randomWeights()
 
-  val weights = if (userWeights != Nil) userWeights
-                else randomWeights
-
-  def randomWeights = {
+  def randomWeights() = {
     println("Initializing with random weights...")
     // List of tuples where each tuple represents (# input nodes, # output nodes) from one layer to the next
-    val transitions = layerConfig zip layerConfig.tail
-    // TODO use 3d matrix?
-    transitions.map { case (i, j) =>
-      // adding one node to the i layer to account for the bias node
-      // (not adding to the j layer because no weights go into the bias)
-      DenseMatrix.rand(i, j, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform)
-      DenseMatrix.rand(i+1, j, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform)
-      //    DenseMatrix.rand(i+1, j)
-      //    DenseMatrix.rand(i, j)
-    }
+    // adding one node to first layer to get weights for bias node (not adding to layer2 because bias nodes take no input)
+    numNodesPerLayer.zip(numNodesPerLayer.tail)
+      .map { t => DenseMatrix.rand(t._1 + 1, t._2) }
+//      .map { t => DenseMatrix.rand(t._1, t._2, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform) }
   }
-
-  // TODO use Streams
 
   def totalError(inputs: List[Double], expected: DenseVector[Double]): Double = {
     val output = forwardPropagate(inputs)
-    costF(expected, output)
+    costFunc(expected, output)
   }
 
   def train(inputs: List[Double], expected: DenseVector[Double]) = {
     val output: DenseVector[Double] = forwardPropagate(inputs)
-    val cost = costF(expected, output)
-
+    val cost = costFunc(expected, output)
     // TODO backprop
-
-
   }
 
   def forwardPropagate(inputs: List[Double]): DenseVector[Double] = {
-    checkInputs(inputs)
-
     val inputVals = DenseVector(inputs.toArray)
     weights.foldLeft(inputVals) { (iVals, wVals) =>
-
-      // add in bias units
       // TODO find better way to add to a vector
-      val layerNodes = DenseVector(iVals.toArray :+ 1d)
-
-//      println(s"layerNodes: $layerNodes")
-//      println(s"wVals: $wVals")
-
-      (layerNodes.t * wVals).t  // multiply weights and inputs
-        .map(activationF)   // run results through activation function
-//        .map { x =>
-//          println(s"z-value: $x")
-//          val a = activationF(x)
-//          println(s"a-value: $a")
-//          a
-//        }
+      val inputValsWithBias = DenseVector(iVals.toArray :+ 1d)
+      (wVals.t * inputValsWithBias)  // multiply weights and inputs
+        .map(activationFunc.apply)   // run results through activation function
     }
   }
+}
 
-  private def checkInputs(inputs: List[Double]): Unit = {
-    // subtract 1 to account for the bias weight
-    val numInputs = weights.head.rows - 1
-    if (numInputs != inputs.size) {
-      throw new Exception("InvalidNetworkInputs: This neural network requires " + numInputs + " inputs")
-      // throw new Exception(String.format("Weights of size %s and inputs of size %s do not match",
-      //                                   Integer.toString(weights.size),
-      //                                   Integer.toString(inputs.size)))
-    }
-  }
+object NeuralNet {
+  val DefaultActivationFunc: ActivationFunc = Sigmoid
+  val DefaultCostFunc: CostFunc = ResidualSumOfSquares
 }
