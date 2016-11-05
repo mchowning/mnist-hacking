@@ -4,26 +4,15 @@ import breeze.linalg.{*, DenseMatrix, DenseVector}
 // TODO use 3d matrix instead of list of 2d matrices for weights?
 
 /**
-  * @param userWeights each DenseMatrix represents the weights going from a particular node in
+  * @param weights each DenseMatrix represents the weights going from a particular node in
   *                    layer l (row #) to a particular node in layer l+1 (column #)
   */
-// TODO fix this constructor, don't need both numNodesPerLayer and userWeights
-class NeuralNet(numNodesPerLayer: List[Int],
-                userWeights: List[DenseMatrix[Double]] = Nil,
-                activationFunc: ActivationFunc = Sigmoid,
-                costFunc: CostFunc = ResidualSumOfSquares,
-                learningRate: Double = 0.5) {
+class NeuralNet private (weights:         List[DenseMatrix[Double]],
+                         activationFunc:  ActivationFunc,
+                         costFunc:        CostFunc,
+                         learningRate:    Double) {
 
-  val weights: List[DenseMatrix[Double]] = if (userWeights != Nil) userWeights else randomWeights()
-
-  def randomWeights() = {
-    println("Initializing with random weights...")
-    // List of tuples where each tuple represents (# input nodes, # output nodes) from one layer to the next
-    // adding one node to first layer to get weights for bias node (not adding to layer2 because bias nodes take no input)
-    numNodesPerLayer.zip(numNodesPerLayer.tail)
-      .map { t => DenseMatrix.rand(t._1 + 1, t._2): DenseMatrix[Double] }
-      // .map { t => DenseMatrix.rand(t._1, t._2, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform) }
-  }
+  // TODO check for valid weight configuration
 
   def totalError(inputs: List[Double], expected: DenseVector[Double]): Double = {
     val output = forwardPropagate(inputs)
@@ -83,5 +72,33 @@ class NeuralNet(numNodesPerLayer: List[Int],
 }
 
 object NeuralNet {
-  val LearningRate: Double = 0.5
+
+  private val LearningRate: Double = 0.5
+  private val DefaultActivationFunc = Sigmoid
+  private val DefaultCostFunc = ResidualSumOfSquares
+
+  def withLayers(numNodesPerLayer:  List[Int],
+                 activationFunc:    ActivationFunc  = Sigmoid,
+                 costFunc:          CostFunc        = ResidualSumOfSquares,
+                 learningRate:      Double          = 0.5
+                ): NeuralNet = {
+
+    println("Initializing with random weights...")
+    // List of tuples where each tuple represents (# input nodes, # output nodes) from one layer to the next
+    // adding one node to first layer to get weights for bias node (not adding to layer2 because bias nodes take no input)
+    val randomWeights = (numNodesPerLayer zip numNodesPerLayer.tail) map {
+      t => DenseMatrix.rand(t._1 + 1, t._2): DenseMatrix[Double]
+      // t => DenseMatrix.rand(t._1, t._2, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform)
+    }
+
+    new NeuralNet(randomWeights, activationFunc, costFunc, learningRate)
+  }
+
+  def withWeights(weights:        List[DenseMatrix[Double]],
+                  activationFunc: ActivationFunc  = DefaultActivationFunc,
+                  costFunc:       CostFunc        = DefaultCostFunc,
+                  learningRate:   Double          = LearningRate
+                 ): NeuralNet = {
+    new NeuralNet(weights, activationFunc, costFunc, learningRate)
+  }
 }

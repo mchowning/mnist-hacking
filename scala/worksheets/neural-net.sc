@@ -1,8 +1,7 @@
 import breeze.linalg.{DenseMatrix, DenseVector}
 
-val nn = new NeuralNet(numNodesPerLayer = List(2,2,2),
-                       userWeights = List(DenseMatrix((0.15, 0.25), (0.20, 0.30), (0.35, 0.35)),
-                         DenseMatrix((0.40, 0.50), (0.45, 0.55), (0.6, 0.6))))
+val nn = NeuralNet.withWeights(weights = List(DenseMatrix((0.15, 0.25), (0.20, 0.30), (0.35, 0.35)),
+                                              DenseMatrix((0.40, 0.50), (0.45, 0.55), (0.6, 0.6))))
 
 val inputs: List[Double] = List(0.05, 0.10)
 val expected: DenseVector[Double] = DenseVector(0.01, 0.99)
