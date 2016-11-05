@@ -12,7 +12,14 @@ class NeuralNet private (weights:         List[DenseMatrix[Double]],
                          costFunc:        CostFunc,
                          learningRate:    Double) {
 
-  // TODO check for valid weight configuration
+  checkThatWeightsAreValid()
+
+  private def checkThatWeightsAreValid() = {
+    weights zip weights.tail foreach { case (w1, w2) =>
+      if (w1.cols != w2.rows - 1) throw new Exception("Invalid Weights: weight matrices must match up so that the output " +
+        "nodes (cols) for weights on a level match the number of input nodes (rows) - 1 (for the bias) for weights on the next level.")
+    }
+  }
 
   def totalError(inputs: List[Double], expected: DenseVector[Double]): Double = {
     val output = forwardPropagate(inputs)

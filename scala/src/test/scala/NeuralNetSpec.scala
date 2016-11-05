@@ -32,5 +32,20 @@ class NeuralNetSpec extends FreeSpec with Matchers {
                                               (0.40891647971788464, 0.5613701211079891 ),
                                               (0.5589164797178846,  0.611370121107989  )))
     }
+
+//    "should have error that goes down" in {
+//
+//    }
+  }
+
+  "A neural network with valid weights should not throw an exception" in {
+    noException should be thrownBy NeuralNet.withWeights(List(DenseMatrix.ones(1,2),
+                                                              DenseMatrix.ones(3,3),
+                                                              DenseMatrix.ones(4,1)))
+  }
+
+  "A neural network with invalid weights should throw an exception" in {
+    an [Exception] should be thrownBy NeuralNet.withWeights(List(DenseMatrix.ones(1,2),
+                                                                 DenseMatrix.ones(2,1)))
   }
 }
