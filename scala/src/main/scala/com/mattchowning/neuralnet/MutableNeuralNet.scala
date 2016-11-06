@@ -10,10 +10,10 @@ import com.mattchowning._
   * @param weights each DenseMatrix represents the weights going from a particular node in
   *                    layer l (row #) to a particular node in layer l+1 (column #)
   */
-class MutableNeuralNet private (weights:         List[DenseMatrix[Double]],
-                                activationFunc:  ActivationFunc,
-                                costFunc:        CostFunc,
-                                learningRate:    Double) extends NeuralNet {
+class MutableNeuralNet private (private var weights: List[DenseMatrix[Double]],
+                                activationFunc:      ActivationFunc,
+                                costFunc:            CostFunc,
+                                learningRate:        Double) extends NeuralNet {
 
   checkThatWeightsAreValid()
 
@@ -45,8 +45,7 @@ class MutableNeuralNet private (weights:         List[DenseMatrix[Double]],
     // Adding matrix of identityWeights for "weights" between final node(s) and error calculationss
     val modifiedWeights = weights :+ DenseMatrix.eye[Double](weights.last.cols)
 
-    val weightActivationPairs = modifiedWeights
-      .reverse zip activations.reverse
+    val weightActivationPairs = modifiedWeights.reverse zip activations.reverse
 
     // TODO try scanRight without reversing?
     // derivative of total error with respect to pre-neuronal activation
@@ -61,9 +60,10 @@ class MutableNeuralNet private (weights:         List[DenseMatrix[Double]],
       case (errors, acts) => errors :* acts
     }
 
-    (weights.reverse zip dedw).map { case (ws, ds) =>
+    weights = (weights.reverse zip dedw).map { case (ws, ds) =>
       ws(*, ::) - (ds * learningRate)
     }.reverse
+    weights
   }
 
   private def forwardPropActivations(inputs: List[Double]): List[DenseVector[Double]] = {

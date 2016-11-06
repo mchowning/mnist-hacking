@@ -38,32 +38,33 @@ class InitialNeuralNet private(weights       : List[DenseMatrix[Double]],
     * @return the new weight values that result from the backpropagation
     */
   private def backpropagate(expected: DenseVector[Double],
-                            activations: List[DenseVector[Double]]): List[DenseMatrix[Double]] = {
-    val output = activations.last
+                            activationsList: List[DenseVector[Double]]): List[DenseMatrix[Double]] = {
+    val output = activationsList.last
     val dcda = costFunc.derivative(expected, output)
 
-    // Adding matrix of identityWeights for "weights" between final node(s) and error calculationss
+    // Adding matrix of identityWeights for "weights" between final node(s) and error calculations
     val modifiedWeights = weights :+ DenseMatrix.eye[Double](weights.last.cols)
 
-    val weightActivationPairs = modifiedWeights
-      .reverse zip activations.reverse
-
-    // TODO try scanRight without reversing?
-    // derivative of total error with respect to pre-neuronal activation
-    val nodeErrors = weightActivationPairs.scanLeft(dcda) {
-      case (upperNodeError, (weightMatrix, activationsBelow)) =>
+    val dcdzList = (modifiedWeights zip activationsList).scanRight(dcda) {
+      case ((weightMatrix, activationsBelow), upperNodeError) =>
         val deda = weightMatrix * upperNodeError
         val dadz = activationsBelow.map(activationFunc.derivative)
         dadz :* deda
-    }.tail // drop the initial (reversed) term which only relates to the cost function level
+    }.init // drop the 'last' term which is the dcda value that initialized the scan
 
-    val dedw = nodeErrors.init zip activations.init.reverse map {
-      case (errors, acts) => errors :* acts
+    // don't care about the error of the first nodes because those are the inputs
+    // don't care about the output activations because those have already been fully accounted for
+    // Each dedw is the derivative of the errors with respect to each node in a layer
+    val dedwList: List[DenseVector[Double]] = (dcdzList.tail zip activationsList.init).map {
+      // dzdw is the activation from the relevant lower layer node
+      case (dcdz, dzdw) => dcdz :* dzdw
     }
 
-    (weights.reverse zip dedw).map { case (ws, ds) =>
-      ws(*, ::) - (ds * learningRate)
-    }.reverse
+    (weights zip dedwList).map { case (ws, dedw) =>
+      // A weight row represents all of the weights going from layer l+1 to a particular node in layer l
+      val weightRows = ws(*,::)
+      weightRows - (learningRate * dedw)
+    }
   }
 
   private def forwardPropActivations(inputs: List[Double]): List[DenseVector[Double]] = {
