@@ -1,4 +1,7 @@
+package com.mattchowning.neuralnet
+
 import breeze.linalg.{*, DenseMatrix, DenseVector}
+import com.mattchowning._
 
 // TODO use Streams
 // TODO use 3d matrix instead of list of 2d matrices for weights?
@@ -7,10 +10,10 @@ import breeze.linalg.{*, DenseMatrix, DenseVector}
   * @param weights each DenseMatrix represents the weights going from a particular node in
   *                    layer l (row #) to a particular node in layer l+1 (column #)
   */
-class NeuralNet private (weights:         List[DenseMatrix[Double]],
-                         activationFunc:  ActivationFunc,
-                         costFunc:        CostFunc,
-                         learningRate:    Double) {
+class InitialNeuralNet private(weights       : List[DenseMatrix[Double]],
+                               activationFunc: ActivationFunc,
+                               costFunc      : CostFunc,
+                               learningRate  : Double) extends NeuralNet {
 
   checkThatWeightsAreValid()
 
@@ -78,32 +81,12 @@ class NeuralNet private (weights:         List[DenseMatrix[Double]],
   }
 }
 
-object NeuralNet {
+object InitialNeuralNet extends NeuralNetFactory {
 
-  private val DefaultActivationFunc = Sigmoid
-  private val DefaultCostFunc = ResidualSumOfSquares
-  private val DefaultLearningRate: Double = 0.5
-
-  def withLayers(numNodesPerLayer:  List[Int],
-                 activationFunc:    ActivationFunc  = DefaultActivationFunc,
-                 costFunc:          CostFunc        = DefaultCostFunc,
-                 learningRate:      Double          = DefaultLearningRate) = {
-
-    println("Initializing with random weights...")
-    // Adding 1 to each 'input' layer to get weights for bias node (not adding to 'output' layer because
-    // bias nodes take no input)
-    val randomWeights = (numNodesPerLayer zip numNodesPerLayer.tail) map {
-      t => DenseMatrix.rand[Double](t._1 + 1, t._2)
-      // t => DenseMatrix.rand[Double](t._1, t._2, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform)
-    }
-
-    withWeights(randomWeights, activationFunc, costFunc, learningRate)
-  }
-
-  def withWeights(weights:        List[DenseMatrix[Double]],
+  override def withWeights(weights:        List[DenseMatrix[Double]],
                   activationFunc: ActivationFunc  = DefaultActivationFunc,
                   costFunc:       CostFunc        = DefaultCostFunc,
                   learningRate:   Double          = DefaultLearningRate) = {
-    new NeuralNet(weights, activationFunc, costFunc, learningRate)
+    new InitialNeuralNet(weights, activationFunc, costFunc, learningRate)
   }
 }

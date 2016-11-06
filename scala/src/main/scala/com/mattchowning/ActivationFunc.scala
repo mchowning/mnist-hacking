@@ -1,3 +1,5 @@
+package com.mattchowning
+
 
 trait ActivationFunc {
   def apply(x: Double): Double

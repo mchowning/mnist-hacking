@@ -1,3 +1,5 @@
+package com.mattchowning
+
 import breeze.linalg.{DenseVector, sum}
 
 trait CostFunc {

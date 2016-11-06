@@ -1,3 +1,5 @@
+package com.mattchowning
+
 import breeze.linalg.DenseVector
 
 object Main extends App {
