@@ -27,39 +27,39 @@ class NeuralNet private (weights:         List[DenseMatrix[Double]],
   }
 
   def train(inputs: List[Double], expected: DenseVector[Double]): List[DenseMatrix[Double]] = {
+      val activations: List[DenseVector[Double]] = forwardPropActivations(inputs)
+      backpropagate(expected, activations)
+  }
 
-    val activations: List[DenseVector[Double]] = forwardPropActivations(inputs)
-    val output: DenseVector[Double] = activations.last
-    val cost = costFunc(expected, output)
+  /**
+    * @return the new weight values that result from the backpropagation
+    */
+  private def backpropagate(expected: DenseVector[Double],
+                            activations: List[DenseVector[Double]]): List[DenseMatrix[Double]] = {
+    val output = activations.last
+    val dcda = costFunc.derivative(expected, output)
 
-    val dcda: DenseVector[Double] = costFunc.derivative(expected, output)
+    // Adding matrix of identityWeights for "weights" between final node(s) and error calculationss
+    val modifiedWeights = weights :+ DenseMatrix.eye[Double](weights.last.cols)
 
-    // Adding matrix of identityWeights for "weights" between final node(s) and error calcs
-    // TODO why do I need to declare the type here?
-    val modifiedWeights: List[DenseMatrix[Double]] = weights :+ DenseMatrix.eye[Double](weights.last.cols)
-
-    val weightActivationPairs: List[(DenseMatrix[Double], DenseVector[Double])] = modifiedWeights.reverse zip activations.reverse
+    val weightActivationPairs = modifiedWeights
+      .reverse zip activations.reverse
 
     // TODO try scanRight without reversing?
     // derivative of total error with respect to pre-neuronal activation
-    val nodeErrors: List[DenseVector[Double]] = weightActivationPairs.scanLeft(dcda) {
-      case (upperNodeError: DenseVector[Double], (weightMatrix, activationsBelow)) => {
-        {
-          {
-            val deda: DenseVector[Double] = weightMatrix * upperNodeError
-            val dadz: DenseVector[Double] = activationsBelow.map(activationFunc.derivative)
-            dadz :* deda
-          }
-        }
-      }
+    val nodeErrors = weightActivationPairs.scanLeft(dcda) {
+      case (upperNodeError, (weightMatrix, activationsBelow)) =>
+        val deda = weightMatrix * upperNodeError
+        val dadz = activationsBelow.map(activationFunc.derivative)
+        dadz :* deda
     }.tail // drop the initial (reversed) term which only relates to the cost function level
 
-    val dedw: List[DenseVector[Double]] = nodeErrors.init zip activations.init.reverse map { case (errors, acts) =>
-      errors :* acts
+    val dedw = nodeErrors.init zip activations.init.reverse map {
+      case (errors, acts) => errors :* acts
     }
 
     (weights.reverse zip dedw).map { case (ws, ds) =>
-      ws(*,::) - (ds * learningRate)
+      ws(*, ::) - (ds * learningRate)
     }.reverse
   }
 
@@ -80,32 +80,30 @@ class NeuralNet private (weights:         List[DenseMatrix[Double]],
 
 object NeuralNet {
 
-  private val LearningRate: Double = 0.5
   private val DefaultActivationFunc = Sigmoid
   private val DefaultCostFunc = ResidualSumOfSquares
+  private val DefaultLearningRate: Double = 0.5
 
   def withLayers(numNodesPerLayer:  List[Int],
-                 activationFunc:    ActivationFunc  = Sigmoid,
-                 costFunc:          CostFunc        = ResidualSumOfSquares,
-                 learningRate:      Double          = 0.5
-                ): NeuralNet = {
+                 activationFunc:    ActivationFunc  = DefaultActivationFunc,
+                 costFunc:          CostFunc        = DefaultCostFunc,
+                 learningRate:      Double          = DefaultLearningRate) = {
 
     println("Initializing with random weights...")
-    // List of tuples where each tuple represents (# input nodes, # output nodes) from one layer to the next
-    // adding one node to first layer to get weights for bias node (not adding to layer2 because bias nodes take no input)
+    // Adding 1 to each 'input' layer to get weights for bias node (not adding to 'output' layer because
+    // bias nodes take no input)
     val randomWeights = (numNodesPerLayer zip numNodesPerLayer.tail) map {
-      t => DenseMatrix.rand(t._1 + 1, t._2): DenseMatrix[Double]
-      // t => DenseMatrix.rand(t._1, t._2, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform)
+      t => DenseMatrix.rand[Double](t._1 + 1, t._2)
+      // t => DenseMatrix.rand[Double](t._1, t._2, new RandBasis(new ThreadLocalRandomGenerator(new MersenneTwister(0))).uniform)
     }
 
-    new NeuralNet(randomWeights, activationFunc, costFunc, learningRate)
+    withWeights(randomWeights, activationFunc, costFunc, learningRate)
   }
 
   def withWeights(weights:        List[DenseMatrix[Double]],
                   activationFunc: ActivationFunc  = DefaultActivationFunc,
                   costFunc:       CostFunc        = DefaultCostFunc,
-                  learningRate:   Double          = LearningRate
-                 ): NeuralNet = {
+                  learningRate:   Double          = DefaultLearningRate) = {
     new NeuralNet(weights, activationFunc, costFunc, learningRate)
   }
 }
