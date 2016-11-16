@@ -18,6 +18,13 @@ libraryDependencies  ++= Seq(
   "org.scalanlp" %% "breeze-viz" % "0.12"
 )
 
+// deeplearning4j
+libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.6.0"
+//nd4j
+classpathTypes += "maven-plugin"
+libraryDependencies += "org.nd4j" % "nd4j-native-platform" % "0.4.0"
+libraryDependencies += "org.slf4j" % "slf4j-jdk14" % "1.7.21"
+
 // ScalaTest
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.0"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
